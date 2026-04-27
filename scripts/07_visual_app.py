@@ -41,7 +41,7 @@ with tabs[0]:
         st.code("\n".join(missing))
     else:
         overview = load_data_overview()
-        st.dataframe(overview, use_container_width=True)
+        st.dataframe(overview, width="stretch")
 
         split = st.selectbox("Split", list(SPLIT_FILES.keys()))
         distribution = load_label_distribution(split)
@@ -59,14 +59,14 @@ with tabs[1]:
     if results is None:
         st.info("No results summary found yet. Run scripts/04_evaluate_models.py after generating predictions.")
     else:
-        st.dataframe(results, use_container_width=True)
+        st.dataframe(results, width="stretch")
 
     image_paths = sorted(CONFUSION_MATRIX_FIGURES_DIR.glob("*_confusion_matrix.png"))
     if image_paths:
         cols = st.columns(2)
         for index, image_path in enumerate(image_paths):
             with cols[index % 2]:
-                st.image(str(image_path), caption=image_path.stem, use_container_width=True)
+                st.image(str(image_path), caption=image_path.stem, width="stretch")
     else:
         st.info("No confusion matrix images found yet.")
 
@@ -84,11 +84,11 @@ with tabs[2]:
         metric_col1.metric("Preview rows", len(preview))
         metric_col2.metric("Preview accuracy", f"{preview['correct'].mean():.3f}")
 
-        st.dataframe(preview, use_container_width=True)
+        st.dataframe(preview, width="stretch")
         errors = preview[~preview["correct"]]
         if not errors.empty:
             st.write("Error examples")
-            st.dataframe(errors.head(20), use_container_width=True)
+            st.dataframe(errors.head(20), width="stretch")
 
 with tabs[3]:
     st.subheader("Interactive Demo")
