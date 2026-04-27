@@ -65,6 +65,12 @@ Train DistilBERT models:
 python scripts/03_train_distilbert.py --task both
 ```
 
+For GPU/cloud training instructions, see:
+
+```text
+CLOUD_TRAINING.md
+```
+
 Evaluate available prediction files:
 
 ```bash

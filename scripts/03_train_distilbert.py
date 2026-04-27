@@ -32,6 +32,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-length", type=int, default=192)
     parser.add_argument("--max-train-samples", type=int, default=None)
     parser.add_argument("--max-validation-samples", type=int, default=None)
+    parser.add_argument("--max-test-samples", type=int, default=None)
+    parser.add_argument("--fp16", choices=["auto", "true", "false"], default="auto")
+    parser.add_argument("--gradient-accumulation-steps", type=int, default=1)
+    parser.add_argument("--save-total-limit", type=int, default=2)
+    parser.add_argument("--logging-steps", type=int, default=100)
+    parser.add_argument("--resume-from-checkpoint", default=None)
+    parser.add_argument("--skip-predict", action="store_true")
     return parser.parse_args()
 
 
@@ -51,7 +58,7 @@ def run_task(args: argparse.Namespace, task: str) -> None:
         n=args.max_validation_samples,
         stratify_column=get_target_column(task),
     )
-    test_df = read_split("test")
+    test_df = sample_dataframe(read_split("test"), n=args.max_test_samples, stratify_column=get_target_column(task))
 
     train_distilbert(
         train_df=train_df,
@@ -63,7 +70,16 @@ def run_task(args: argparse.Namespace, task: str) -> None:
         learning_rate=args.learning_rate,
         batch_size=args.batch_size,
         epochs=args.epochs,
+        fp16_mode=args.fp16,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        save_total_limit=args.save_total_limit,
+        logging_steps=args.logging_steps,
+        resume_from_checkpoint=args.resume_from_checkpoint,
     )
+    if args.skip_predict:
+        print(f"Saved DistilBERT {task} model: {model_dir}")
+        return
+
     predictions = predict_distilbert(test_df, task=task, model_dir=model_dir, max_length=args.max_length)
     output_path = PREDICTIONS_DIR / f"distilbert_{task}_predictions.csv"
     predictions.to_csv(output_path, index=False)

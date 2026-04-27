@@ -132,6 +132,12 @@ Only do this if you need to train or run DistilBERT models.
 pip install -r requirements.txt
 ```
 
+Check whether the machine has a usable GPU:
+
+```bash
+python scripts/09_check_environment.py
+```
+
 Then train models:
 
 ```bash
@@ -143,6 +149,8 @@ For a small test run:
 ```bash
 python scripts/03_train_distilbert.py --task sentiment --max-train-samples 1000 --max-validation-samples 300 --epochs 1
 ```
+
+For cloud GPU training, see `CLOUD_TRAINING.md`.
 
 ## Common Problems
 
@@ -159,4 +167,3 @@ If dataset files are missing:
 If the dashboard opens but no results appear:
 
 - run `python scripts/08_smoke_test.py` first
-

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import inspect
+import json
 from pathlib import Path
 
 import numpy as np
@@ -52,6 +53,26 @@ class ReviewDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.encodings["input_ids"])
+
+
+def detect_accelerator() -> str:
+    """Return the best available training accelerator name."""
+    if torch.cuda.is_available():
+        return f"cuda:{torch.cuda.get_device_name(0)}"
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def should_use_fp16(fp16_mode: str) -> bool:
+    """Resolve fp16 mode. Auto uses fp16 only on CUDA."""
+    if fp16_mode == "true":
+        return True
+    if fp16_mode == "false":
+        return False
+    if fp16_mode == "auto":
+        return torch.cuda.is_available()
+    raise ValueError(f"fp16_mode must be auto, true, or false, got {fp16_mode!r}")
 
 
 def get_task_config(task: str, model_dir: Path) -> DistilBertTaskConfig:
@@ -121,9 +142,15 @@ def train_distilbert(
     learning_rate: float = 2e-5,
     batch_size: int = 16,
     epochs: int = 2,
+    fp16_mode: str = "auto",
+    gradient_accumulation_steps: int = 1,
+    save_total_limit: int = 2,
+    logging_steps: int = 100,
+    resume_from_checkpoint: str | None = None,
 ) -> None:
     """Fine-tune DistilBERT and save tokenizer/model to model_dir."""
     task_config = get_task_config(task, model_dir)
+    model_dir.mkdir(parents=True, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(base_model_name)
     model = AutoModelForSequenceClassification.from_pretrained(
         base_model_name,
@@ -143,14 +170,33 @@ def train_distilbert(
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         num_train_epochs=epochs,
+        fp16=should_use_fp16(fp16_mode),
+        gradient_accumulation_steps=gradient_accumulation_steps,
         weight_decay=0.01,
         load_best_model_at_end=True,
         metric_for_best_model="macro_f1",
         logging_dir=str(model_dir / "logs"),
-        logging_steps=100,
+        logging_steps=logging_steps,
+        save_total_limit=save_total_limit,
         report_to="none",
         seed=42,
     )
+
+    metadata = {
+        "task": task,
+        "base_model_name": base_model_name,
+        "accelerator": detect_accelerator(),
+        "train_samples": len(train_df),
+        "validation_samples": len(validation_df),
+        "max_length": max_length,
+        "learning_rate": learning_rate,
+        "batch_size": batch_size,
+        "epochs": epochs,
+        "fp16_mode": fp16_mode,
+        "fp16_resolved": should_use_fp16(fp16_mode),
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+    }
+    (model_dir / "training_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
     trainer = Trainer(
         model=model,
@@ -159,7 +205,7 @@ def train_distilbert(
         eval_dataset=validation_dataset,
         compute_metrics=compute_metrics,
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_model(str(model_dir))
     tokenizer.save_pretrained(str(model_dir))
 
