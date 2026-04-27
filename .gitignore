@@ -1,0 +1,32 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+env/
+.playwright-mcp/
+
+# Generated outputs
+outputs/predictions/*.csv
+outputs/metrics/*.csv
+outputs/metrics/classification_reports/*.txt
+outputs/metrics/error_analysis/*.csv
+outputs/figures/**/*.png
+outputs/logs/*
+!outputs/logs/.gitkeep
+
+# Local model checkpoints can be large.
+models/*.joblib
+models/distilbert_sentiment/*
+models/distilbert_rating/*
+!models/distilbert_sentiment/.gitkeep
+!models/distilbert_rating/.gitkeep
+
+# Local dataset files can be large. Keep only README/metadata in git.
+*.zip
+data/**/*.parquet
+data/**/*.csv
+data/**/summary.json
+!data/**/README.md
+!data/**/summary.example.json
