@@ -25,9 +25,23 @@ review_to_rating/
 
 ## Setup
 
+For Windows and macOS setup, use the quickstart guide:
+
+```text
+START_HERE.md
+```
+
+Install lightweight dependencies for data checks, baseline models, evaluation, dashboard, and demo:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements-basic.txt
+```
+
+Install full dependencies only when training DistilBERT:
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -78,10 +92,7 @@ streamlit run scripts/07_visual_app.py
 For a quick local smoke test without training deep learning models:
 
 ```bash
-python scripts/01_check_data.py
-python scripts/02_train_baseline.py --max-train-samples 5000
-python scripts/04_evaluate_models.py
-python scripts/05_error_analysis.py
+python scripts/08_smoke_test.py
 ```
 
 ## Prediction File Format
