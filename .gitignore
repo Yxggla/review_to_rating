@@ -30,3 +30,17 @@ data/**/*.csv
 data/**/summary.json
 !data/**/README.md
 !data/**/summary.example.json
+
+# Kaggle packaging and downloaded outputs.
+kaggle_upload/dataset/*.csv
+kaggle_upload/*.zip
+kaggle_upload/kernel/__pycache__/
+kaggle_upload/kernel/*.pyc
+
+kaggle_outputs/**
+!kaggle_outputs/
+!kaggle_outputs/distilbert/
+!kaggle_outputs/distilbert/review_to_rating_distilbert/
+!kaggle_outputs/distilbert/review_to_rating_distilbert/metrics/
+!kaggle_outputs/distilbert/review_to_rating_distilbert/metrics/*.csv
+!kaggle_outputs/distilbert/review_to_rating_distilbert/metrics/*.txt

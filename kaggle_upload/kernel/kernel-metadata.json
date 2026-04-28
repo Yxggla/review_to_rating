@@ -1,0 +1,19 @@
+{
+  "id": "yxggla/notebookb927df8177",
+  "id_no": 117056851,
+  "title": "notebookb927df8177",
+  "code_file": "notebookb927df8177.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [
+    "yxggla/amazon-review-rating-processed-3class"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "GPU"
+}
