@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import METRICS_DIR, PREDICTIONS_DIR, SPLIT_FILES
+from .config import METRICS_DIR, PREDICTIONS_DIR, PROJECT_ROOT, SPLIT_FILES
 from .data_loader import label_distribution, read_split, split_overview
 
 
@@ -39,6 +39,34 @@ def load_results_summary() -> pd.DataFrame | None:
     if not path.exists():
         return None
     return pd.read_csv(path)
+
+
+def load_all_results_summary() -> pd.DataFrame | None:
+    """Load baseline and Kaggle DistilBERT metrics in one normalized table."""
+    frames = []
+    baseline_path = METRICS_DIR / "results_summary.csv"
+    if baseline_path.exists():
+        baseline = pd.read_csv(baseline_path)
+        frames.append(baseline)
+
+    kaggle_path = (
+        PROJECT_ROOT
+        / "kaggle_outputs"
+        / "distilbert"
+        / "review_to_rating_distilbert"
+        / "metrics"
+        / "distilbert_results_summary.csv"
+    )
+    if kaggle_path.exists():
+        distilbert = pd.read_csv(kaggle_path)
+        distilbert = distilbert.assign(model="distilbert", samples=distilbert["test_samples"])
+        keep_columns = ["task", "model", "accuracy", "precision_macro", "recall_macro", "macro_f1", "samples"]
+        frames.append(distilbert[keep_columns])
+
+    if not frames:
+        return None
+    results = pd.concat(frames, ignore_index=True)
+    return results.sort_values(["task", "model"]).reset_index(drop=True)
 
 
 def load_prediction_preview(experiment_name: str, nrows: int = 1000) -> pd.DataFrame:

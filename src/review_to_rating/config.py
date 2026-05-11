@@ -7,9 +7,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-DATA_DIR = PROJECT_ROOT / "data" / "amazon_reviews_multi_en"
+DATA_DIR = PROJECT_ROOT / "data" / "datasets"
 PROCESSED_DATA_DIR = DATA_DIR / "processed_3class"
-RAW_PARQUET_DIR = DATA_DIR / "raw_parquet"
+RAW_PARQUET_DIR = DATA_DIR / "original"
 SUMMARY_PATH = DATA_DIR / "summary.json"
 
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"

@@ -9,6 +9,28 @@ It contains two related NLP classification tasks:
 
 The project is organized as a Python codebase. Shared logic lives in `src/review_to_rating/`, while runnable experiment entry points live in `scripts/`.
 
+## Dataset
+
+This project distinguishes between the original source dataset and the processed project dataset.
+
+Original dataset:
+
+- Name: `Amazon Reviews Multi` (English subset: `en`)
+- Source: Hugging Face `mteb/amazon_reviews_multi`
+- Link: https://huggingface.co/datasets/mteb/amazon_reviews_multi
+
+Processed project dataset (3-class version):
+
+- Name: `amazon-review-rating-processed-3class`
+- Source: Kaggle `yxggla/amazon-review-rating-processed-3class`
+- Link: https://www.kaggle.com/datasets/yxggla/amazon-review-rating-processed-3class
+- Key labels:
+  - `stars`: original 1-5 star rating
+  - `label_3class`: mapped sentiment label
+    - 1-2 stars -> `negative`
+    - 3 stars -> `neutral`
+    - 4-5 stars -> `positive`
+
 ## Project Structure
 
 ```text

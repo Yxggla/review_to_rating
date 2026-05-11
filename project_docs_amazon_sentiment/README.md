@@ -55,7 +55,21 @@
 
 ## 4. 数据集说明
 
-数据集使用本地已下载的 **Amazon Reviews Multi / en**。该数据集包含英文 Amazon 商品评论文本及 1-5 星评分标签。
+本项目明确区分“原始数据集”和“后处理数据集”。
+
+原始数据集：
+
+- 名称：**Amazon Reviews Multi / en**
+- 来源：Hugging Face `mteb/amazon_reviews_multi`
+- 链接：https://huggingface.co/datasets/mteb/amazon_reviews_multi
+- 内容：英文 Amazon 评论文本与原始星级信息
+
+后处理数据集（项目实际训练使用）：
+
+- 名称：**Amazon Review Rating Processed 3-Class**
+- 来源：Kaggle `yxggla/amazon-review-rating-processed-3class`
+- 链接：https://www.kaggle.com/datasets/yxggla/amazon-review-rating-processed-3class
+- 处理说明：在保留 `stars`（1-5 星）基础上，新增 `label_3class` 三分类情感标签
 
 本地文件：
 
