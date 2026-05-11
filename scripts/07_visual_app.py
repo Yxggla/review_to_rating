@@ -28,6 +28,7 @@ from review_to_rating.dashboard import (  # noqa: E402
     load_label_distribution,
     load_prediction_preview,
 )
+from review_to_rating.demo import distilbert_runtime_error  # noqa: E402
 
 
 TASK_LABELS = {
@@ -40,6 +41,30 @@ SPLIT_LABELS = {
     "validation": "Validation / 验证集",
     "test": "Test / 测试集",
 }
+
+
+def show_altair_chart_compat(chart: alt.Chart) -> None:
+    """Render Altair chart across old/new Streamlit width APIs."""
+    try:
+        st.altair_chart(chart, width="stretch")
+    except TypeError:
+        st.altair_chart(chart, use_container_width=True)
+
+
+def show_dataframe_compat(df_or_styler) -> None:
+    """Render dataframe across old/new Streamlit width APIs."""
+    try:
+        st.dataframe(df_or_styler, width="stretch")
+    except TypeError:
+        st.dataframe(df_or_styler, use_container_width=True)
+
+
+def show_image_compat(image_path: str, caption: str) -> None:
+    """Render image across old/new Streamlit width APIs."""
+    try:
+        st.image(image_path, caption=caption, width="stretch")
+    except TypeError:
+        st.image(image_path, caption=caption, use_container_width=True)
 
 
 def show_label_chart(distribution: pd.DataFrame, label_type: str, title: str, help_text: str) -> None:
@@ -60,8 +85,8 @@ def show_label_chart(distribution: pd.DataFrame, label_type: str, title: str, he
         )
         .properties(height=260)
     )
-    st.altair_chart(chart, width="stretch")
-    st.dataframe(chart_data.rename(columns={"label": "Label / 标签", "count": "Count / 数量"}), width="stretch")
+    show_altair_chart_compat(chart)
+    show_dataframe_compat(chart_data.rename(columns={"label": "Label / 标签", "count": "Count / 数量"}))
 
 
 def format_metric_table(df: pd.DataFrame) -> pd.DataFrame:
@@ -103,7 +128,7 @@ def show_metric_chart(results: pd.DataFrame, metric: str, title: str) -> None:
         .properties(height=280)
     )
     st.markdown(f"**{title}**")
-    st.altair_chart(chart, width="stretch")
+    show_altair_chart_compat(chart)
 
 
 st.set_page_config(page_title="Amazon Review NLP Dashboard", layout="wide")
@@ -133,7 +158,7 @@ with tabs[0]:
                 "avg_text_length": "Avg Text Length / 平均文本长度",
             }
         )
-        st.dataframe(overview_display, width="stretch")
+        show_dataframe_compat(overview_display)
 
         split = st.selectbox("Split / 数据划分", list(SPLIT_FILES.keys()), format_func=lambda value: SPLIT_LABELS[value])
         distribution = load_label_distribution(split)
@@ -175,7 +200,7 @@ with tabs[1]:
                     st.metric("Best Macro F1 / 最佳宏平均 F1", f"{best['macro_f1']:.3f}", help=f"Best model: {best['model']}")
                     st.metric("Best Accuracy / 最佳准确率", f"{best['accuracy']:.3f}")
 
-        st.dataframe(
+        show_dataframe_compat(
             format_metric_table(results).style.format(
                 {
                     "Accuracy / 准确率": "{:.4f}",
@@ -183,8 +208,7 @@ with tabs[1]:
                     "Macro Recall / 宏平均召回率": "{:.4f}",
                     "Macro F1 / 宏平均 F1": "{:.4f}",
                 }
-            ),
-            width="stretch",
+            )
         )
 
         show_metric_chart(results, "accuracy", "Accuracy Comparison / 准确率对比")
@@ -198,7 +222,7 @@ with tabs[1]:
         for index, image_path in enumerate(image_paths):
             with cols[index % 2]:
                 readable_name = image_path.stem.replace("_", " ").title()
-                st.image(str(image_path), caption=f"{readable_name} / 混淆矩阵", width="stretch")
+                show_image_compat(str(image_path), f"{readable_name} / 混淆矩阵")
     else:
         st.info("No confusion matrix images found yet. / 还没有混淆矩阵图片。")
 
@@ -217,7 +241,7 @@ with tabs[2]:
         metric_col1.metric("Preview Rows / 预览行数", len(preview))
         metric_col2.metric("Preview Accuracy / 预览准确率", f"{preview['correct'].mean():.3f}")
 
-        st.dataframe(
+        show_dataframe_compat(
             preview.rename(
                 columns={
                     "id": "ID",
@@ -226,14 +250,13 @@ with tabs[2]:
                     "pred_label": "Predicted Label / 预测标签",
                     "correct": "Correct / 是否正确",
                 }
-            ),
-            width="stretch",
+            )
         )
         errors = preview[~preview["correct"]]
         if not errors.empty:
             st.markdown("**Error Examples / 错误样例**")
             st.caption("Useful for explaining where the model still struggles. / 这些样例可以用来说明模型仍然容易犯错的地方。")
-            st.dataframe(errors.head(20), width="stretch")
+            show_dataframe_compat(errors.head(20))
 
 with tabs[3]:
     st.subheader("Interactive Demo / 实时预测演示")
@@ -254,9 +277,10 @@ with tabs[3]:
         for label, paths in distilbert_model_options.items()
         if (paths[0] / "config.json").exists() and (paths[1] / "config.json").exists()
     }
+    distilbert_import_error = distilbert_runtime_error() if available_distilbert_options else None
 
     backend_options = ["auto", "baseline"]
-    if available_distilbert_options:
+    if available_distilbert_options and distilbert_import_error is None:
         backend_options.insert(1, "distilbert")
 
     backend = st.radio("Model Backend / 模型后端", backend_options, horizontal=True)
@@ -264,16 +288,18 @@ with tabs[3]:
         iter(available_distilbert_options.values()),
         (DISTILBERT_SENTIMENT_DIR, DISTILBERT_RATING_DIR),
     )
-    if available_distilbert_options:
+    if available_distilbert_options and distilbert_import_error is None:
         model_source = st.selectbox("DistilBERT Model Source / DistilBERT 模型来源", list(available_distilbert_options))
         sentiment_model_dir, rating_model_dir = available_distilbert_options[model_source]
 
-    distilbert_ready = bool(available_distilbert_options)
+    distilbert_ready = bool(available_distilbert_options) and distilbert_import_error is None
     baseline_ready = (MODELS_DIR / "baseline_sentiment.joblib").exists() and (MODELS_DIR / "baseline_rating.joblib").exists()
     if backend == "auto" and not distilbert_ready and baseline_ready:
-        st.info("Auto mode will use baseline because DistilBERT model files are not available. / 找不到 DistilBERT 时，auto 会使用 baseline。")
+        st.info("Auto mode will use baseline because DistilBERT is unavailable in this environment. / 当前环境不能运行 DistilBERT，auto 会使用 baseline。")
     if backend == "distilbert" and not distilbert_ready:
-        st.warning("DistilBERT model files are not available locally. / 本地没有 DistilBERT 模型文件。")
+        st.warning("DistilBERT is unavailable in this environment. / 当前环境不能运行 DistilBERT。")
+    if distilbert_import_error is not None:
+        st.caption(f"DistilBERT disabled in this environment: {distilbert_import_error}")
     if not distilbert_ready and not baseline_ready:
         st.warning("No saved models are available yet. / 还没有可用模型。")
     can_predict = (backend == "distilbert" and distilbert_ready) or (backend == "baseline" and baseline_ready) or (
@@ -282,17 +308,21 @@ with tabs[3]:
     if st.button("Predict / 开始预测", disabled=not can_predict):
         from review_to_rating.demo import predict_review
 
-        result = predict_review(
-            review_text,
-            sentiment_model_dir,
-            rating_model_dir,
-            backend=backend,
-            baseline_sentiment_model_path=MODELS_DIR / "baseline_sentiment.joblib",
-            baseline_rating_model_path=MODELS_DIR / "baseline_rating.joblib",
-        )
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Backend / 后端", str(result["backend"]))
-        col2.metric("Sentiment / 情感", str(result["sentiment"]))
-        col3.metric("Rating / 星级", f"{result['rating']} stars")
-        st.caption("Sentiment labels: negative = bad, neutral = middle, positive = good. / 情感标签：negative 差评，neutral 中性，positive 好评。")
-        st.dataframe(pd.DataFrame([result]), width="stretch")
+        try:
+            result = predict_review(
+                review_text,
+                sentiment_model_dir,
+                rating_model_dir,
+                backend=backend,
+                baseline_sentiment_model_path=MODELS_DIR / "baseline_sentiment.joblib",
+                baseline_rating_model_path=MODELS_DIR / "baseline_rating.joblib",
+            )
+        except Exception as exc:
+            st.error(f"Prediction failed: {exc}")
+        else:
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Backend / 后端", str(result["backend"]))
+            col2.metric("Sentiment / 情感", str(result["sentiment"]))
+            col3.metric("Rating / 星级", f"{result['rating']} stars")
+            st.caption("Sentiment labels: negative = bad, neutral = middle, positive = good. / 情感标签：negative 差评，neutral 中性，positive 好评。")
+            show_dataframe_compat(pd.DataFrame([result]))

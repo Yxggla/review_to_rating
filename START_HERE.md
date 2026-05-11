@@ -11,11 +11,11 @@ Default setup runs the lightweight project flow:
 - visual dashboard
 - demo with baseline fallback
 
-DistilBERT training is optional and requires the full dependencies.
+DistilBERT training is optional and requires the full dependencies. Use Python 3.10 or newer for DistilBERT.
 
 ## 1. Install Python
 
-Use Python 3.9 or newer.
+Use Python 3.10 or newer.
 
 Check your version:
 

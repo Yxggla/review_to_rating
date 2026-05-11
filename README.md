@@ -56,12 +56,12 @@ START_HERE.md
 Install lightweight dependencies for data checks, baseline models, evaluation, dashboard, and demo:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-basic.txt
 ```
 
-Install full dependencies only when training DistilBERT:
+Install full dependencies only when training DistilBERT. Use Python 3.10+ for the DistilBERT environment:
 
 ```bash
 pip install -r requirements.txt

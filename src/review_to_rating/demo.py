@@ -2,12 +2,33 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+from importlib.metadata import PackageNotFoundError, version
 
 import joblib
 import pandas as pd
 
 from .config import ID_COLUMN, TEXT_COLUMN
+
+
+def distilbert_runtime_error() -> str | None:
+    """Return an import error message when DistilBERT runtime is unusable."""
+    if sys.version_info < (3, 10):
+        return f"Python {sys.version.split()[0]} is too old for the installed DistilBERT stack; use Python 3.10+."
+    try:
+        numpy_version = version("numpy")
+    except PackageNotFoundError:
+        numpy_version = None
+    if numpy_version is not None:
+        major = numpy_version.split(".", 1)[0]
+        if major.isdigit() and int(major) >= 2:
+            return f"NumPy {numpy_version} is incompatible with the installed torch/transformers build; use numpy<2."
+    try:
+        from .distilbert_model import predict_distilbert as _predict_distilbert  # noqa: F401
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
 
 
 def build_demo_dataframe(text: str) -> pd.DataFrame:
@@ -58,13 +79,22 @@ def predict_review(
         and baseline_sentiment_model_path.exists()
         and baseline_rating_model_path.exists()
     )
+    distilbert_error = distilbert_runtime_error() if distilbert_ready else None
 
-    if backend in ("auto", "distilbert") and distilbert_ready:
-        return predict_review_distilbert(text, sentiment_model_dir, rating_model_dir)
+    if backend in ("auto", "distilbert") and distilbert_ready and distilbert_error is None:
+        try:
+            return predict_review_distilbert(text, sentiment_model_dir, rating_model_dir)
+        except Exception as exc:
+            if backend == "distilbert":
+                raise RuntimeError(f"DistilBERT inference failed: {exc}") from exc
+            if baseline_ready:
+                return predict_review_baseline(text, baseline_sentiment_model_path, baseline_rating_model_path)
     if backend in ("auto", "baseline") and baseline_ready:
         return predict_review_baseline(text, baseline_sentiment_model_path, baseline_rating_model_path)
 
     if backend == "distilbert":
+        if distilbert_error is not None:
+            raise RuntimeError(f"DistilBERT runtime is unavailable: {distilbert_error}")
         raise FileNotFoundError("DistilBERT model files are not available yet.")
     if backend == "baseline":
         raise FileNotFoundError("Baseline model files are not available yet.")
