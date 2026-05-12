@@ -17,8 +17,8 @@ from review_to_rating.config import (  # noqa: E402
     CONFUSION_MATRIX_FIGURES_DIR,
     DISTILBERT_RATING_DIR,
     DISTILBERT_SENTIMENT_DIR,
+    KAGGLE_DISTILBERT_MODELS_DIR,
     MODELS_DIR,
-    PROJECT_ROOT,
     SPLIT_FILES,
 )
 from review_to_rating.dashboard import (  # noqa: E402
@@ -267,10 +267,12 @@ with tabs[3]:
         height=120,
     )
 
-    kaggle_model_root = PROJECT_ROOT / "kaggle_outputs" / "distilbert" / "review_to_rating_distilbert" / "models"
     distilbert_model_options = {
         "Local models/": (DISTILBERT_SENTIMENT_DIR, DISTILBERT_RATING_DIR),
-        "Kaggle output/": (kaggle_model_root / "distilbert_sentiment", kaggle_model_root / "distilbert_rating"),
+        "Kaggle output/": (
+            KAGGLE_DISTILBERT_MODELS_DIR / "distilbert_sentiment",
+            KAGGLE_DISTILBERT_MODELS_DIR / "distilbert_rating",
+        ),
     }
     available_distilbert_options = {
         label: paths

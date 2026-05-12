@@ -38,6 +38,10 @@ kaggle_upload/*.zip
 kaggle_upload/kernel/__pycache__/
 kaggle_upload/kernel/*.pyc
 
+# Generated shareable runtime bundles.
+release/**
+!release/
+
 kaggle_outputs/**
 !kaggle_outputs/
 !kaggle_outputs/distilbert/

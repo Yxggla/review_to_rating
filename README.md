@@ -35,14 +35,22 @@ Processed project dataset (3-class version):
 
 ```text
 review_to_rating/
-├── data/                         # Local dataset files
-├── src/review_to_rating/          # Reusable Python package
-├── scripts/                       # Runnable project scripts
-├── outputs/                       # Generated predictions, metrics, figures
-├── models/                        # Local model checkpoints
-├── project_docs_amazon_sentiment/  # Member responsibility documents
-├── report/                        # Report drafts and final files
-└── slides/                        # Presentation drafts and final files
+├── src/review_to_rating/             # Core package: config, data loading, models, evaluation
+├── scripts/                          # Entry-point scripts for checks, training, evaluation, demo
+├── data/datasets/                    # Local dataset files used by the code
+├── models/                           # Local saved baseline and DistilBERT checkpoints
+├── outputs/                          # Local generated predictions, metrics, figures, logs
+├── kaggle_outputs/                   # Downloaded cloud/Kaggle training artifacts and metrics
+├── release/                          # Generated standalone runtime bundles for sharing
+├── project_docs_amazon_sentiment/    # Course coordination notes
+├── report/                           # Report drafts
+└── slides/                           # Slide drafts
+```
+
+For a cleaner explanation of what should stay in the repo versus what is just large local output, see:
+
+```text
+PROJECT_STRUCTURE.md
 ```
 
 ## Setup
@@ -121,6 +129,30 @@ For a quick local smoke test without training deep learning models:
 
 ```bash
 python scripts/08_smoke_test.py
+```
+
+## Shareable Runtime Bundles
+
+If you want to send friends a ready-to-run package instead of the full training project, build a standalone inference bundle:
+
+```bash
+python scripts/10_build_inference_bundle.py --variant all --zip
+```
+
+Generated files:
+
+- `release/review_to_rating_runtime_baseline.zip`
+  - smallest package
+  - includes trained TF-IDF + Logistic Regression models
+  - suitable when you want the easiest setup
+- `release/review_to_rating_runtime_distilbert.zip`
+  - includes trained DistilBERT sentiment and rating models
+  - much larger, but ready for direct inference without retraining
+
+Each bundle is self-contained and can be shared directly. Your friends only need to unzip it, install the bundle's own `requirements.txt`, and run:
+
+```bash
+python predict.py --text "The headphones are comfortable and the sound quality is great."
 ```
 
 ## Prediction File Format

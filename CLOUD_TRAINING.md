@@ -8,7 +8,7 @@ Use a GPU runtime when possible. CUDA GPUs are the most reliable option for this
 
 Recommended minimum:
 
-- Python 3.9+
+- Python 3.10+
 - 8 GB RAM or more
 - NVIDIA GPU preferred
 - Enough disk space for dataset, model checkpoints, and outputs
@@ -48,7 +48,7 @@ CPU training is possible but much slower.
 Place the dataset in the same structure used locally:
 
 ```text
-data/amazon_reviews_multi_en/
+data/datasets/
 ├── summary.json
 └── processed_3class/
     ├── train_3class.csv

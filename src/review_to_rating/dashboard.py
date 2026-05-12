@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import METRICS_DIR, PREDICTIONS_DIR, PROJECT_ROOT, SPLIT_FILES
+from .config import KAGGLE_DISTILBERT_METRICS_DIR, METRICS_DIR, PREDICTIONS_DIR, SPLIT_FILES
 from .data_loader import label_distribution, read_split, split_overview
 
 
@@ -49,14 +49,7 @@ def load_all_results_summary() -> pd.DataFrame | None:
         baseline = pd.read_csv(baseline_path)
         frames.append(baseline)
 
-    kaggle_path = (
-        PROJECT_ROOT
-        / "kaggle_outputs"
-        / "distilbert"
-        / "review_to_rating_distilbert"
-        / "metrics"
-        / "distilbert_results_summary.csv"
-    )
+    kaggle_path = KAGGLE_DISTILBERT_METRICS_DIR / "distilbert_results_summary.csv"
     if kaggle_path.exists():
         distilbert = pd.read_csv(kaggle_path)
         distilbert = distilbert.assign(model="distilbert", samples=distilbert["test_samples"])

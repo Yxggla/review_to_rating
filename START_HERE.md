@@ -45,13 +45,13 @@ Or download the repository ZIP from GitHub and open the extracted folder in Term
 Large data files are not stored in GitHub. Put the local dataset here:
 
 ```text
-data/amazon_reviews_multi_en/
+data/datasets/
 ├── summary.json
 ├── processed_3class/
 │   ├── train_3class.csv
 │   ├── validation_3class.csv
 │   └── test_3class.csv
-└── raw_parquet/
+└── original/
     ├── train.parquet
     ├── validation.parquet
     └── test.parquet
@@ -161,7 +161,7 @@ If Python is not found:
 
 If dataset files are missing:
 
-- confirm the CSV files are under `data/amazon_reviews_multi_en/processed_3class/`
+- confirm the CSV files are under `data/datasets/processed_3class/`
 - confirm filenames match exactly: `train_3class.csv`, `validation_3class.csv`, `test_3class.csv`
 
 If the dashboard opens but no results appear:

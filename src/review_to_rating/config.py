@@ -7,10 +7,11 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-DATA_DIR = PROJECT_ROOT / "data" / "datasets"
-PROCESSED_DATA_DIR = DATA_DIR / "processed_3class"
-RAW_PARQUET_DIR = DATA_DIR / "original"
-SUMMARY_PATH = DATA_DIR / "summary.json"
+DATA_DIR = PROJECT_ROOT / "data"
+DATASETS_DIR = DATA_DIR / "datasets"
+PROCESSED_DATA_DIR = DATASETS_DIR / "processed_3class"
+RAW_PARQUET_DIR = DATASETS_DIR / "original"
+SUMMARY_PATH = DATASETS_DIR / "summary.json"
 
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 PREDICTIONS_DIR = OUTPUTS_DIR / "predictions"
@@ -25,6 +26,12 @@ LOGS_DIR = OUTPUTS_DIR / "logs"
 MODELS_DIR = PROJECT_ROOT / "models"
 DISTILBERT_SENTIMENT_DIR = MODELS_DIR / "distilbert_sentiment"
 DISTILBERT_RATING_DIR = MODELS_DIR / "distilbert_rating"
+
+KAGGLE_OUTPUTS_DIR = PROJECT_ROOT / "kaggle_outputs"
+KAGGLE_DISTILBERT_DIR = KAGGLE_OUTPUTS_DIR / "distilbert" / "review_to_rating_distilbert"
+KAGGLE_DISTILBERT_MODELS_DIR = KAGGLE_DISTILBERT_DIR / "models"
+KAGGLE_DISTILBERT_PREDICTIONS_DIR = KAGGLE_DISTILBERT_DIR / "predictions"
+KAGGLE_DISTILBERT_METRICS_DIR = KAGGLE_DISTILBERT_DIR / "metrics"
 
 RANDOM_SEED = 42
 TEXT_COLUMN = "text"

@@ -73,10 +73,10 @@
 
 本地文件：
 
-- `data/amazon_reviews_multi_en/summary.json`
-- `data/amazon_reviews_multi_en/processed_3class/train_3class.csv`
-- `data/amazon_reviews_multi_en/processed_3class/validation_3class.csv`
-- `data/amazon_reviews_multi_en/processed_3class/test_3class.csv`
+- `data/datasets/summary.json`
+- `data/datasets/processed_3class/train_3class.csv`
+- `data/datasets/processed_3class/validation_3class.csv`
+- `data/datasets/processed_3class/test_3class.csv`
 
 数据规模：
 
