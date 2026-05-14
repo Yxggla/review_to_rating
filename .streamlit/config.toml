@@ -1,0 +1,5 @@
+# Streamlit's file watcher walks imported packages; `transformers` lazy-loads
+# vision submodules that import `torchvision`. Disabling the watcher avoids
+# noisy tracebacks and optional-deps import errors when opening the Demo tab.
+[server]
+fileWatcherType = "none"

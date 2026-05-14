@@ -1,5 +1,6 @@
 -r requirements-basic.txt
 torch>=2.0
+torchvision>=0.15
 transformers>=4.40
 datasets>=2.18
 accelerate>=0.28

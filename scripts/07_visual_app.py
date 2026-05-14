@@ -31,6 +31,14 @@ from review_to_rating.dashboard import (  # noqa: E402
 from review_to_rating.demo import distilbert_runtime_error  # noqa: E402
 
 
+@st.cache_resource(
+    show_spinner="Loading DistilBERT stack (first time can take tens of seconds) / 首次加载 DistilBERT 可能需数十秒…",
+)
+def _cached_distilbert_runtime_error() -> str | None:
+    """Session-cached import check so the Demo tab is not blank while torch/transformers load."""
+    return distilbert_runtime_error()
+
+
 TASK_LABELS = {
     "sentiment": "Sentiment / 情感分类",
     "rating": "Rating / 星级预测",
@@ -266,6 +274,11 @@ with tabs[3]:
         value="The headphones are comfortable and the sound quality is great, but the battery life is shorter than expected.",
         height=120,
     )
+    st.caption(
+        "If DistilBERT checkpoints are present, the first load imports torch/transformers; "
+        "model options and the predict button appear when that finishes. / "
+        "若检测到 DistilBERT 权重，首次会加载推理环境，下方「模型后端」与按钮在加载结束后出现。"
+    )
 
     distilbert_model_options = {
         "Local models/": (DISTILBERT_SENTIMENT_DIR, DISTILBERT_RATING_DIR),
@@ -279,7 +292,7 @@ with tabs[3]:
         for label, paths in distilbert_model_options.items()
         if (paths[0] / "config.json").exists() and (paths[1] / "config.json").exists()
     }
-    distilbert_import_error = distilbert_runtime_error() if available_distilbert_options else None
+    distilbert_import_error = _cached_distilbert_runtime_error() if available_distilbert_options else None
 
     backend_options = ["auto", "baseline"]
     if available_distilbert_options and distilbert_import_error is None:
