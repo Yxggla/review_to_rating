@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
+from wordcloud import WordCloud
 
 from .config import RATING_COLUMN, SENTIMENT_COLUMN, TEXT_COLUMN
 from .labels import RATING_LABELS, SENTIMENT_LABELS
@@ -75,4 +76,26 @@ def save_confusion_matrix(
     plt.ylabel("True label")
     plt.tight_layout()
     plt.savefig(output_path, dpi=200)
+    plt.close()
+
+
+def generate_wordcloud(texts: list[str], output_path: Path, colormap: str = "viridis") -> None:
+    """Generate and save a word cloud image from a list of texts."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    combined_text = " ".join(texts)
+    if not combined_text.strip():
+        return
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color="white",
+        colormap=colormap,
+        max_words=100,
+        random_state=42,
+    ).generate(combined_text)
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation="bilinear")
+    plt.axis("off")
+    plt.tight_layout(pad=0)
+    plt.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close()

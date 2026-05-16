@@ -23,6 +23,8 @@ from review_to_rating.config import (  # noqa: E402
 )
 from review_to_rating.dashboard import (  # noqa: E402
     available_prediction_files,
+    get_text_length_plot_path,
+    get_wordcloud_paths,
     load_all_results_summary,
     load_data_overview,
     load_label_distribution,
@@ -37,6 +39,16 @@ from review_to_rating.demo import distilbert_runtime_error  # noqa: E402
 def _cached_distilbert_runtime_error() -> str | None:
     """Session-cached import check so the Demo tab is not blank while torch/transformers load."""
     return distilbert_runtime_error()
+
+
+SAMPLE_REVIEWS = [
+    "The headphones are comfortable and the sound quality is great, but the battery life is shorter than expected.",
+    "Absolutely love this product! Fast shipping and excellent quality. Will definitely buy again.",
+    "Terrible experience. The product broke after just one week and customer service was unhelpful.",
+    "It's okay, nothing special. Does the job but there are better options available for the same price.",
+    "The product arrived damaged and stopped working after two days. Complete waste of money.",
+    "Pretty good for the price, but I've had better. Shipping was slow and packaging was dented.",
+]
 
 
 TASK_LABELS = {
@@ -140,6 +152,28 @@ def show_metric_chart(results: pd.DataFrame, metric: str, title: str) -> None:
 
 
 st.set_page_config(page_title="Amazon Review NLP Dashboard", layout="wide")
+
+# Theme toggle in sidebar
+st.sidebar.markdown("### Theme / 主题")
+if "dark_mode" not in st.session_state:
+    st.session_state["dark_mode"] = False
+
+if st.sidebar.button("🌙 Dark" if not st.session_state["dark_mode"] else "☀️ Light"):
+    st.session_state["dark_mode"] = not st.session_state["dark_mode"]
+    st.rerun()
+
+# Apply theme CSS
+if st.session_state["dark_mode"]:
+    st.markdown("""
+        <style>
+        .stApp { background-color: #0e1117; color: #f0f2f6; }
+        .stTabs [data-baseweb="tab-list"] { background-color: #1a1d24; }
+        .stTabs [data-baseweb="tab"] { color: #f0f2f6; }
+        h1, h2, h3, h4, p, .stMarkdown { color: #f0f2f6; }
+        .stDataFrame { color: #f0f2f6; }
+        </style>
+    """, unsafe_allow_html=True)
+
 st.title("Amazon Review Sentiment and Rating Dashboard / 亚马逊评论分类演示")
 st.caption("Predict review sentiment and star rating, compare baseline and DistilBERT results. / 输入评论文本，预测好中坏和星级，并对比模型效果。")
 
@@ -185,6 +219,26 @@ with tabs[0]:
                 "Star Ratings / 星级标签",
                 "1 to 5 star labels used for rating prediction. / 星级预测任务使用 1 到 5 星作为标签。",
             )
+
+        st.markdown("---")
+        st.markdown("**Text Length Distribution / 文本长度分布**")
+        text_length_path = get_text_length_plot_path()
+        if text_length_path.exists():
+            show_image_compat(str(text_length_path), "Text Length Distribution / 文本长度分布")
+        else:
+            st.info("Text length distribution plot not generated yet. / 文本长度分布图尚未生成。")
+
+        st.markdown("**Word Clouds / 词云**")
+        st.caption("Visualize most frequent words in positive and negative reviews. / 可视化正面和负面评论中的高频词汇。")
+        wordcloud_paths = get_wordcloud_paths(split)
+        if wordcloud_paths["positive"].exists() and wordcloud_paths["negative"].exists():
+            col1, col2 = st.columns(2)
+            with col1:
+                show_image_compat(str(wordcloud_paths["positive"]), "Positive Reviews Word Cloud / 正面评论词云")
+            with col2:
+                show_image_compat(str(wordcloud_paths["negative"]), "Negative Reviews Word Cloud / 负面评论词云")
+        else:
+            st.info("Word clouds not generated yet. Run data check script to generate them. / 词云尚未生成，运行数据检查脚本生成。")
 
 with tabs[1]:
     st.subheader("Evaluation Results / 模型评估结果")
@@ -269,9 +323,21 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("Interactive Demo / 实时预测演示")
     st.caption("Enter an English Amazon review and predict both sentiment and star rating. / 输入一条英文亚马逊评论，模型会预测情感类别和星级。")
+
+    st.markdown("**Sample Reviews / 示例评论**")
+    st.caption("Click a button to load a sample review. / 点击按钮加载示例评论。")
+    sample_cols = st.columns(len(SAMPLE_REVIEWS))
+    for idx, sample_text in enumerate(SAMPLE_REVIEWS):
+        with sample_cols[idx]:
+            if st.button(f"Review {idx + 1}", key=f"sample_{idx}"):
+                st.session_state["_review_text"] = sample_text
+
+    if "_review_text" not in st.session_state:
+        st.session_state["_review_text"] = SAMPLE_REVIEWS[0]
+
     review_text = st.text_area(
         "Review Text / 评论文本",
-        value="The headphones are comfortable and the sound quality is great, but the battery life is shorter than expected.",
+        value=st.session_state["_review_text"],
         height=120,
     )
     st.caption(
@@ -320,24 +386,42 @@ with tabs[3]:
     can_predict = (backend == "distilbert" and distilbert_ready) or (backend == "baseline" and baseline_ready) or (
         backend == "auto" and (distilbert_ready or baseline_ready)
     )
-    if st.button("Predict / 开始预测", disabled=not can_predict):
+
+    col_btn, col_export = st.columns([1, 3])
+    with col_btn:
+        predict_clicked = st.button("Predict / 开始预测", disabled=not can_predict, type="primary")
+
+    if predict_clicked:
         from review_to_rating.demo import predict_review
 
-        try:
-            result = predict_review(
-                review_text,
-                sentiment_model_dir,
-                rating_model_dir,
-                backend=backend,
-                baseline_sentiment_model_path=MODELS_DIR / "baseline_sentiment.joblib",
-                baseline_rating_model_path=MODELS_DIR / "baseline_rating.joblib",
-            )
-        except Exception as exc:
-            st.error(f"Prediction failed: {exc}")
-        else:
+        with st.spinner("Predicting... / 预测中..."):
+            try:
+                result = predict_review(
+                    review_text,
+                    sentiment_model_dir,
+                    rating_model_dir,
+                    backend=backend,
+                    baseline_sentiment_model_path=MODELS_DIR / "baseline_sentiment.joblib",
+                    baseline_rating_model_path=MODELS_DIR / "baseline_rating.joblib",
+                )
+            except Exception as exc:
+                st.error(f"Prediction failed: {exc}")
+                result = None
+        if result:
             col1, col2, col3 = st.columns(3)
             col1.metric("Backend / 后端", str(result["backend"]))
             col2.metric("Sentiment / 情感", str(result["sentiment"]))
             col3.metric("Rating / 星级", f"{result['rating']} stars")
             st.caption("Sentiment labels: negative = bad, neutral = middle, positive = good. / 情感标签：negative 差评，neutral 中性，positive 好评。")
-            show_dataframe_compat(pd.DataFrame([result]))
+
+            result_df = pd.DataFrame([result])
+            show_dataframe_compat(result_df)
+
+            with col_export:
+                csv_data = result_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "Download Result / 下载结果 (CSV)",
+                    data=csv_data,
+                    file_name="prediction_result.csv",
+                    mime="text/csv",
+                )

@@ -11,7 +11,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from review_to_rating.config import DATA_DISTRIBUTION_FIGURES_DIR, METRICS_DIR, ensure_project_dirs
+from review_to_rating.config import DATA_DISTRIBUTION_FIGURES_DIR, FIGURES_DIR, METRICS_DIR, SENTIMENT_COLUMN, TEXT_COLUMN, ensure_project_dirs
 from review_to_rating.data_loader import (
     label_distribution,
     load_all_splits,
@@ -19,7 +19,7 @@ from review_to_rating.data_loader import (
     split_overview,
     validate_all_splits,
 )
-from review_to_rating.visualization import save_label_distribution_plots, save_text_length_plot
+from review_to_rating.visualization import generate_wordcloud, save_label_distribution_plots, save_text_length_plot
 
 
 def main() -> None:
@@ -54,9 +54,21 @@ def main() -> None:
     save_label_distribution_plots(splits, DATA_DISTRIBUTION_FIGURES_DIR)
     save_text_length_plot(splits, DATA_DISTRIBUTION_FIGURES_DIR)
 
+    wordcloud_dir = FIGURES_DIR / "wordclouds"
+    wordcloud_dir.mkdir(parents=True, exist_ok=True)
+    for split, df in splits.items():
+        positive_texts = df[df[SENTIMENT_COLUMN] == "positive"][TEXT_COLUMN].fillna("").astype(str).tolist()
+        negative_texts = df[df[SENTIMENT_COLUMN] == "negative"][TEXT_COLUMN].fillna("").astype(str).tolist()
+        if positive_texts:
+            generate_wordcloud(positive_texts, wordcloud_dir / f"{split}_positive_wordcloud.png", colormap="Greens")
+        if negative_texts:
+            generate_wordcloud(negative_texts, wordcloud_dir / f"{split}_negative_wordcloud.png", colormap="Reds")
+        print(f"Generated wordclouds for {split} split")
+
     print(f"\nSaved overview: {overview_path}")
     print(f"Saved label distribution: {distribution_path}")
     print(f"Saved figures: {DATA_DISTRIBUTION_FIGURES_DIR}")
+    print(f"Saved wordclouds: {wordcloud_dir}")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import KAGGLE_DISTILBERT_METRICS_DIR, METRICS_DIR, PREDICTIONS_DIR, SPLIT_FILES
+from .config import (
+    DATA_DISTRIBUTION_FIGURES_DIR,
+    FIGURES_DIR,
+    KAGGLE_DISTILBERT_METRICS_DIR,
+    METRICS_DIR,
+    PREDICTIONS_DIR,
+    SPLIT_FILES,
+)
 from .data_loader import label_distribution, read_split, split_overview
 
 
@@ -68,3 +75,17 @@ def load_prediction_preview(experiment_name: str, nrows: int = 1000) -> pd.DataF
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_csv(path, nrows=nrows)
+
+
+def get_wordcloud_paths(split: str) -> dict[str, Path]:
+    """Return paths for sentiment wordcloud images if they exist."""
+    wordcloud_dir = FIGURES_DIR / "wordclouds"
+    return {
+        "positive": wordcloud_dir / f"{split}_positive_wordcloud.png",
+        "negative": wordcloud_dir / f"{split}_negative_wordcloud.png",
+    }
+
+
+def get_text_length_plot_path() -> Path:
+    """Return path for text length distribution plot."""
+    return DATA_DISTRIBUTION_FIGURES_DIR / "text_length_distribution.png"

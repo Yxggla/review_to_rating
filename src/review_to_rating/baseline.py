@@ -31,7 +31,7 @@ def build_baseline_pipeline(max_features: int = 50000) -> Pipeline:
                 "classifier",
                 LogisticRegression(
                     max_iter=1000,
-                    n_jobs=-1,
+                    n_jobs=1,
                     class_weight="balanced",
                     random_state=42,
                 ),
