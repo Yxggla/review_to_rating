@@ -56,6 +56,11 @@ TASK_LABELS = {
     "rating": "Rating / 星级预测",
 }
 
+MODEL_LABELS = {
+    "baseline": "Baseline",
+    "distilbert": "DistilBERT",
+}
+
 SPLIT_LABELS = {
     "train": "Train / 训练集",
     "validation": "Validation / 验证集",
@@ -66,7 +71,7 @@ SPLIT_LABELS = {
 def show_altair_chart_compat(chart: alt.Chart) -> None:
     """Render Altair chart across old/new Streamlit width APIs."""
     try:
-        st.altair_chart(chart, width="stretch")
+        st.altair_chart(chart)
     except TypeError:
         st.altair_chart(chart, use_container_width=True)
 
@@ -87,6 +92,18 @@ def show_image_compat(image_path: str, caption: str) -> None:
         st.image(image_path, caption=caption, use_container_width=True)
 
 
+def format_experiment_label(experiment_name: str) -> str:
+    model, task = experiment_name.split("_", 1)
+    return f"{MODEL_LABELS.get(model, model.title())} - {TASK_LABELS.get(task, task.title())}"
+
+
+def describe_sample(index: int) -> str:
+    text = SAMPLE_REVIEWS[index].replace("\n", " ")
+    preview = text[:72].rstrip()
+    suffix = "..." if len(text) > 72 else ""
+    return f"Sample {index + 1}: {preview}{suffix}"
+
+
 def show_label_chart(distribution: pd.DataFrame, label_type: str, title: str, help_text: str) -> None:
     chart_data = distribution[distribution["label_type"] == label_type][["label", "count"]].copy()
     chart_data["label"] = chart_data["label"].astype(str)
@@ -103,7 +120,7 @@ def show_label_chart(distribution: pd.DataFrame, label_type: str, title: str, he
                 alt.Tooltip("count:Q", title="Count / 数量", format=","),
             ],
         )
-        .properties(height=260)
+        .properties(height=260, width="container")
     )
     show_altair_chart_compat(chart)
     show_dataframe_compat(chart_data.rename(columns={"label": "Label / 标签", "count": "Count / 数量"}))
@@ -112,6 +129,7 @@ def show_label_chart(distribution: pd.DataFrame, label_type: str, title: str, he
 def format_metric_table(df: pd.DataFrame) -> pd.DataFrame:
     formatted = df.copy()
     formatted["task"] = formatted["task"].map(TASK_LABELS).fillna(formatted["task"])
+    formatted["model"] = formatted["model"].map(MODEL_LABELS).fillna(formatted["model"])
     formatted = formatted.rename(
         columns={
             "task": "Task / 任务",
@@ -129,7 +147,7 @@ def format_metric_table(df: pd.DataFrame) -> pd.DataFrame:
 def show_metric_chart(results: pd.DataFrame, metric: str, title: str) -> None:
     chart_data = results[["task", "model", metric]].copy()
     chart_data["Task / 任务"] = chart_data["task"].map(TASK_LABELS).fillna(chart_data["task"])
-    chart_data["Model / 模型"] = chart_data["model"]
+    chart_data["Model / 模型"] = chart_data["model"].map(MODEL_LABELS).fillna(chart_data["model"])
     chart_data["Score / 分数"] = chart_data[metric]
     chart = (
         alt.Chart(chart_data)
@@ -145,7 +163,7 @@ def show_metric_chart(results: pd.DataFrame, metric: str, title: str) -> None:
                 alt.Tooltip("Score / 分数:Q", format=".4f"),
             ],
         )
-        .properties(height=280)
+        .properties(height=280, width="container")
     )
     st.markdown(f"**{title}**")
     show_altair_chart_compat(chart)
@@ -197,13 +215,17 @@ with tabs[0]:
             columns={
                 "split": "Split / 数据划分",
                 "rows": "Rows / 样本数",
-                "avg_text_length": "Avg Text Length / 平均文本长度",
+                "mean_words": "Mean Words / 平均词数",
+                "median_words": "Median Words / 中位词数",
+                "max_words": "Max Words / 最大词数",
+                "min_words": "Min Words / 最小词数",
             }
         )
         show_dataframe_compat(overview_display)
 
         split = st.selectbox("Split / 数据划分", list(SPLIT_FILES.keys()), format_func=lambda value: SPLIT_LABELS[value])
         distribution = load_label_distribution(split)
+        st.caption("The table shows dataset size and typical review length. The charts below show whether labels are balanced or skewed. / 上表先看数据规模和评论长度；下方两张图用来说明标签分布是否均衡。")
         col1, col2 = st.columns(2)
         with col1:
             show_label_chart(
@@ -259,7 +281,11 @@ with tabs[1]:
                 st.markdown(f"**{task_name}**")
                 if not task_results.empty:
                     best = task_results.sort_values("macro_f1", ascending=False).iloc[0]
-                    st.metric("Best Macro F1 / 最佳宏平均 F1", f"{best['macro_f1']:.3f}", help=f"Best model: {best['model']}")
+                    st.metric(
+                        "Best Macro F1 / 最佳宏平均 F1",
+                        f"{best['macro_f1']:.3f}",
+                        help=f"Best model: {MODEL_LABELS.get(best['model'], best['model'])}",
+                    )
                     st.metric("Best Accuracy / 最佳准确率", f"{best['accuracy']:.3f}")
 
         show_dataframe_compat(
@@ -279,7 +305,7 @@ with tabs[1]:
     image_paths = sorted(CONFUSION_MATRIX_FIGURES_DIR.glob("*_confusion_matrix.png"))
     if image_paths:
         st.markdown("**Confusion Matrices / 混淆矩阵**")
-        st.caption("Rows are true labels and columns are predicted labels. The diagonal means correct predictions. / 行是真实标签，列是预测标签，对角线表示预测正确。")
+        st.caption("Rows are true labels and columns are predicted labels. Darker diagonal blocks mean the model is often correct; off-diagonal blocks show where labels are easy to confuse. / 行是真实标签，列是预测标签；对角线越深说明预测越准，非对角线越深说明这些类别更容易混淆。")
         cols = st.columns(2)
         for index, image_path in enumerate(image_paths):
             with cols[index % 2]:
@@ -290,18 +316,23 @@ with tabs[1]:
 
 with tabs[2]:
     st.subheader("Prediction Preview / 预测样例")
-    st.write("This table previews saved prediction files. Correct rows mean the predicted label matches the test label. / 这里预览已保存的预测文件，correct 表示预测标签和测试集真实标签一致。")
+    st.write("This tab previews saved prediction files. Correct rows mean the predicted label matches the test label. / 这里预览预测结果；`correct` 表示预测标签和真实标签是否一致。")
     prediction_files = available_prediction_files()
     if not prediction_files:
         st.info("No prediction files found yet. / 还没有预测文件。")
     else:
-        experiment = st.selectbox("Experiment / 实验", list(prediction_files))
+        experiment = st.selectbox(
+            "Experiment / 实验",
+            sorted(prediction_files),
+            format_func=format_experiment_label,
+        )
         preview = load_prediction_preview(experiment)
         preview["correct"] = preview["true_label"].astype(str) == preview["pred_label"].astype(str)
 
         metric_col1, metric_col2 = st.columns(2)
         metric_col1.metric("Preview Rows / 预览行数", len(preview))
         metric_col2.metric("Preview Accuracy / 预览准确率", f"{preview['correct'].mean():.3f}")
+        st.caption("Read this table row by row: text is the original review, true label is the expected answer, predicted label is the model output. / 这张表按行阅读即可：`text` 是原评论，`true_label` 是真实标签，`pred_label` 是模型输出。")
 
         show_dataframe_compat(
             preview.rename(
@@ -317,29 +348,53 @@ with tabs[2]:
         errors = preview[~preview["correct"]]
         if not errors.empty:
             st.markdown("**Error Examples / 错误样例**")
-            st.caption("Useful for explaining where the model still struggles. / 这些样例可以用来说明模型仍然容易犯错的地方。")
-            show_dataframe_compat(errors.head(20))
+            st.caption("These rows are useful when you want to explain model mistakes with concrete examples. / 如果你要口头解释模型为什么会错，直接挑这里的例子讲就够了。")
+            show_dataframe_compat(
+                errors.head(20).rename(
+                    columns={
+                        "id": "ID",
+                        "text": "Review Text / 评论文本",
+                        "true_label": "True Label / 真实标签",
+                        "pred_label": "Predicted Label / 预测标签",
+                        "correct": "Correct / 是否正确",
+                    }
+                )
+            )
 
 with tabs[3]:
     st.subheader("Interactive Demo / 实时预测演示")
     st.caption("Enter an English Amazon review and predict both sentiment and star rating. / 输入一条英文亚马逊评论，模型会预测情感类别和星级。")
 
     st.markdown("**Sample Reviews / 示例评论**")
-    st.caption("Click a button to load a sample review. / 点击按钮加载示例评论。")
-    sample_cols = st.columns(len(SAMPLE_REVIEWS))
-    for idx, sample_text in enumerate(SAMPLE_REVIEWS):
-        with sample_cols[idx]:
-            if st.button(f"Review {idx + 1}", key=f"sample_{idx}"):
-                st.session_state["_review_text"] = sample_text
+    st.caption("Pick a prepared example if you want a fast live demo. / 如果想快速演示，可以直接加载示例评论。")
 
-    if "_review_text" not in st.session_state:
-        st.session_state["_review_text"] = SAMPLE_REVIEWS[0]
+    if "review_text_input" not in st.session_state:
+        st.session_state["review_text_input"] = SAMPLE_REVIEWS[0]
+    if "sample_review_index" not in st.session_state:
+        st.session_state["sample_review_index"] = 0
+
+    def _load_selected_sample() -> None:
+        st.session_state["review_text_input"] = SAMPLE_REVIEWS[st.session_state["sample_review_index"]]
+
+    sample_col1, sample_col2 = st.columns([3, 1])
+    with sample_col1:
+        st.selectbox(
+            "Quick Sample / 快速示例",
+            list(range(len(SAMPLE_REVIEWS))),
+            key="sample_review_index",
+            format_func=describe_sample,
+        )
+    with sample_col2:
+        st.button("Load Sample / 加载示例", on_click=_load_selected_sample)
 
     review_text = st.text_area(
         "Review Text / 评论文本",
-        value=st.session_state["_review_text"],
-        height=120,
+        key="review_text_input",
+        height=160,
     )
+    text_metric_col1, text_metric_col2 = st.columns(2)
+    text_metric_col1.metric("Word Count / 词数", len(review_text.split()))
+    text_metric_col2.metric("Character Count / 字符数", len(review_text))
     st.caption(
         "If DistilBERT checkpoints are present, the first load imports torch/transformers; "
         "model options and the predict button appear when that finishes. / "
@@ -413,6 +468,10 @@ with tabs[3]:
             col2.metric("Sentiment / 情感", str(result["sentiment"]))
             col3.metric("Rating / 星级", f"{result['rating']} stars")
             st.caption("Sentiment labels: negative = bad, neutral = middle, positive = good. / 情感标签：negative 差评，neutral 中性，positive 好评。")
+            st.success(
+                f"Interpretation / 解读: this review reads as `{result['sentiment']}` and lands around `{result['rating']}` stars. "
+                "Use this box when presenting so viewers immediately understand what the numbers mean."
+            )
 
             result_df = pd.DataFrame([result])
             show_dataframe_compat(result_df)
